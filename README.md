@@ -6,14 +6,14 @@ Code for scheduling visitor-faculty meetings during the MIT ChemE Recruiting Wee
 2.  Sign in via LinkedIn, GitHub, or Google.
 3.  Clone this repository from GitHub.
     - Click the **Git** icon in the top banner of the screen.
-    - In the **Git Clone URL** field, copy the following URL: https://github.com/gdowdy3/Y2Y-Scheduling.git
-    - Press the [Tab] key and the other two fields should be populated automatically with **Branch: master** and **JuliaBox Folder: Y2Y-Scheduling**.
+    - In the **Git Clone URL** field, copy the following URL: https://github.com/gdowdy3/ChemE-Scheduling.git
+    - Press the [Tab] key and the other two fields should be populated automatically with **Branch: master** and **JuliaBox Folder: ChemE-Scheduling**.
     - Click the "+" symbol to the right of the now filled fields.
     - Wait for confirmation of a successful "Git Operation".
     - Close out of the **Sync** pop-up.
 4. Test run the code
-    - Click on the **Y2Y-Scheduling** folder.
-    - Click on the **Y2Y Shift Assignment.ipnyb** file.  It should open in a new tab in your browser.
+    - Click on the **ChemE-Scheduling** folder.
+    - Click on the **ChemE-Scheduling.ipnyb** file.  It should open in a new tab in your browser.
     - Follow the instructions there.
 5. Inspect the output.
     - If the code ran successfully, it should have produced two files in the Y2Y-Scheduling Folder:
