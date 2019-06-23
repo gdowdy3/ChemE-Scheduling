@@ -1,0 +1,180 @@
+\author{Garrett Dowdy}
+\title{ChemE Visitor Scheduling}
+\date{\today}
+
+\documentclass[12pt]{article}
+\usepackage[margin=0.5in]{geometry}
+
+\usepackage{hyperref}
+
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{amsthm}
+
+\usepackage{graphicx}
+\usepackage{epstopdf}
+\usepackage{float}
+\usepackage{accents} %required for underbar
+\newcommand{\ubar}[1]{\underaccent{\bar}{#1}}
+
+\newcommand{\R}{\mathbb R}
+\newcommand{\mbf}[1]{\mathbf{#1}}
+\newcommand{\trans}{^\text{T}}
+\DeclareMathOperator{\Tr}{Tr}
+
+%define Theorem environments:
+\newtheorem{theorem}{Theorem} %[subsection]
+\newtheorem{assumption}{Assumption} %[subsection]
+\newtheorem{claim}{Claim}%[subsection]
+\newtheorem{corollary}[claim]{Corollary}
+\newtheorem{lemma}{Lemma} %[subsection]
+\theoremstyle{definition}
+\newtheorem{definition}{Definition} %[subsection]
+\newtheorem{definition set}{Definition Set}%[subsection]
+\newtheorem{problem statement}{Problem Statement} %[subsection]
+\theoremstyle{remark}
+\newtheorem{remark}{Remark}%[subsection]
+\theoremstyle{remark}
+\newtheorem{proposition}{Proposition}%[subsection]
+
+%code for inserting EPS figures
+%\begin{figure}[H]
+%    \centering
+%    \includegraphics[scale = 0.75]{H1coneCropped}
+%    \caption{The cone of points satisfying $\mathbf H_1(\mathbf y) \succeq \mathbf 0$.}
+%    \label{fig: H1 cone}
+%\end{figure}
+
+\usepackage[utf8]{inputenc}
+\usepackage{csquotes}
+
+
+\begin{document}
+
+\maketitle
+
+\section{Introduction}
+This document describes a mathematical model for solving the ChemE Visitor Scheduling problem.
+
+My understanding of the problem is as follows:
+\begin{itemize}
+\item
+Each visitor submits a rank-ordered list of the faculty they\rq{}d like to meet.
+
+\item
+Each faculty member submits their availability.
+
+\item
+Visitors are assigned to meet with faculty during specific periods.
+
+\item
+We want to maximize the overall happiness of the visitors.
+\end{itemize}
+
+\section{Definitions}
+\subsection{Sets}
+\begin{itemize}
+\item
+Let $V = \{1,...,n_V\}$ denote the set of visitors.
+
+\item
+Let $F = \{1,...,n_F\}$ denote the set of faculty.
+
+\item
+Let $T = \{1,...,n_T\}$ denote the set of time periods.
+\end{itemize}
+
+\subsection{Problem Data}
+\begin{itemize}
+\item
+Let $A \in \{0,1\}^{n_F \times n_T}$ be a matrix describing the availability of the faculty.
+In particular, if faculty $f$ is available for a meeting during period $t$, then $A(f,t) = 1$.
+Otherwise, $A(f,t) = 0$.
+
+\item
+Let $P \in \{0, \hdots  , 10\}^{n_V \times n_F}$ be a matrix describing the visitors\rq{} preferences regarding who they\rq{}d like to meet.
+In particular, if visitor $v$ really wants to meet faculty $f$ (that is, if faculty $f$ is their first choice), then $P(v,f) = 10$.
+If faculty $f$ is their second choice, $P(v,f) = 9$, and so on, down to their tenth choice, for which $P(v,f) = 1$.
+For a faculty member $f$ not appearing on visitor $v$\rq{}s preference list, $P(v,f) = 0$.
+\end{itemize}
+
+\subsection{Decision Variables}
+\begin{itemize}
+\item
+Let $x \in \{0,1\}^{n_V \times n_F \times n_T}$ be a matrix describing decisions to schedule meetings between visitors and faculty.
+In particular, if visitor $v$ is assigned to meet with faculty $f$ during period $t$, then $x(v,f,t) = 1$.
+Otherwise, $x(v,f,t) = 0$.
+
+\item
+Let $y \in \{0,1\}^{n_V \times n_T}$ be a matrix describing decisions to schedule the visitors for free time.
+In particular, if visitor $v$ is scheduled for free time during period $t$, then $y(v,t) = 1$.
+Otherwise, $y(v,t) = 0$.
+\end{itemize}
+
+\section{Constraints}
+\begin{enumerate}
+\item
+Each visitor must be assigned to either a faculty meeting or free time for each period:
+\begin{equation}
+\sum_{f \in F} x(v,f,t) + y(v,t) = 1, \ \ \ \forall v \in V, \forall t \in T.
+\end{equation}
+
+\item
+Each faculty can meet with at most one student during a given period:
+\begin{equation}
+\sum_{v \in V} x(v,f,t) \leq 1, \ \ \ \forall f \in F, \forall t \in T.
+\end{equation}
+
+\item
+Visitors can only meet with faculty when the faculty are available:
+\begin{equation}
+\sum_{v \in V} x(v,f,t) \leq A(f,t), \ \ \ \forall f \in F, \forall t \in T.
+\end{equation}
+
+\item
+Each visitor-faculty pair can only meet at most once
+\begin{equation}
+\sum_{t \in T} x(v,f,t) \leq 1, \ \ \ \forall v \in V, \forall f \in F.
+\end{equation}
+
+\item (Optional) Each visitor must have at least $n^L$ periods of free time:
+\begin{equation}
+\sum_{t \in T} y(v,t) \geq n^L, \ \ \ \forall v \in V.
+\end{equation}
+
+\item (Optional) Each visitor can have at most $n^U$ periods of free time:
+\begin{equation}
+\sum_{t \in T} y(v,t) \leq n^U, \ \ \ \forall v \in V.
+\end{equation}
+\end{enumerate}
+
+\section{Objective}
+The objective function will have the form
+\begin{equation}
+c\cdot x
+\end{equation}
+where $c \in \R^{n_V \times n_F \times n_T}$ is a matrix with elements defined by
+\begin{equation}
+c(v,f,t) = P(v,f), \ \ \ \forall v \in V, \forall f \in F, \forall t \in T.
+\end{equation}
+Giving the visitors meetings that they want corresponds to \emph{maximizing} this objective, so the sense of the optimization will be maximization.
+
+\section{The Full Problem}
+The full optimization problem is:
+\begin{equation}
+\begin{aligned}
+&\max_{x,y} && c \cdot x \\
+&\text{s.t} && x \in \{0,1\}^{n_V \times n_F \times n_T}, \\
+& && y \in \{0,1\}^{n_V \times n_T}, \\
+& && \sum_{f \in F} x(v,f,t) + y(v,t) = 1, \ \ \ \forall v \in V, \forall t \in T, \\
+& && \sum_{v \in V} x(v,f,t) \leq 1, \ \ \ \forall f \in F, \forall t \in T, \\
+& && \sum_{v \in V} x(v,f,t) \leq A_V(f,t), \ \ \ \forall f \in F, \forall t \in T, \\
+& && \sum_{t \in T} y(v,t) \geq n^L, \ \ \ \forall v \in V, \\
+& && \sum_{t \in T} y(v,t) \leq n^U, \ \ \ \forall v \in V.
+\end{aligned}
+\end{equation}
+
+
+
+\end{document}
