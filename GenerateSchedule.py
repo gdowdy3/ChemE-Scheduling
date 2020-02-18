@@ -518,10 +518,15 @@ if __name__ == '__main__':
     else:
 
         # Display an error message
-        print('Error: The problem does not have an optimal solution.')
+        print('Error: I was unable to solve the model.')
 
     # Print out all the visitors' schedules
+    print('Writing out the schedule for each visitor...')
     PrintAllVisitorSchedules(Visitors, Professors, TimeSlots, Meeting)
 
     # Print out all the professors' schedules
+    print('Writing out the schedule for each professor...')
     PrintAllProfessorSchedules(Visitors, Professors, TimeSlots, Meeting)
+
+    # Print a final message
+    print('All done! Please inspect the individual schedules that were created in the \"Visitor Schedules\" and \"Professor Schedules\" directories.')
