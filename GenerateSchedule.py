@@ -343,8 +343,26 @@ def PrintVisitorSchedule(Visitors, Professors, TimeSlots, Meeting, v):
     # Inputs:
     #   v = the Id number of the visitor whose schedule you'd like to print out
     
+    # Build the name of the output file
+    FileName = 'Visitor %s %s\'s Schedule.txt' % (Visitors[v].FirstName, Visitors[v].LastName)
+
+    # Build the path to the directory
+    FileDirectory = '%s%s%s' %(os.getcwd(), os.sep, 'Visitor Schedules')
+
+    # Check if the directory exists
+    if os.path.isdir(FileDirectory) == False:
+
+        # Create the directory
+        os.mkdir(FileDirectory)
+
+    # Build the path to the output file
+    FilePath = '%s%s%s' %(FileDirectory, os.sep, FileName)
+
+    # Open up the file for writing
+    File = open(FilePath, 'w')
+
     # Print out the visitor's name
-    print('Visitor: %s %s' % (Visitors[v].FirstName, Visitors[v].LastName))
+    File.write('Visitor: %s %s\n' % (Visitors[v].FirstName, Visitors[v].LastName))
 
     # Loop over the time slots
     for t in TimeSlots:
@@ -373,8 +391,14 @@ def PrintVisitorSchedule(Visitors, Professors, TimeSlots, Meeting, v):
             # Extend the print string to indicate free time
             PrintString += ' Free time'
 
+        # Add a newline character
+        PrintString += '\n'
+
         # Print out the result
-        print(PrintString)
+        File.write(PrintString)
+
+    # Close the file you were writing to
+    File.close()
 
 def PrintAllVisitorSchedules(Visitors, Professors, TimeSlots, Meeting):
 
@@ -390,8 +414,26 @@ def PrintProfessorSchedule(Visitors, Professors, TimeSlots, Meeting, p):
     # Inputs:
     #   p = the Id number of the professor whose schedule you'd like to print out
     
+     # Build the name of the output file
+    FileName = 'Professor %s\'s Schedule.txt' % Professors[p].LastName
+
+    # Build the path to the directory
+    FileDirectory = '%s%s%s' %(os.getcwd(), os.sep, 'Professor Schedules')
+
+    # Check if the directory exists
+    if os.path.isdir(FileDirectory) == False:
+
+        # Create the directory
+        os.mkdir(FileDirectory)
+
+    # Build the path to the output file
+    FilePath = '%s%s%s' %(FileDirectory, os.sep, FileName)
+
+    # Open up the file for writing
+    File = open(FilePath, 'w')
+
     # Print out the professor's name
-    print('Professor: %s' % Professors[p].LastName)
+    File.write('Professor: %s\n' % Professors[p].LastName)
 
     # Loop over the time slots
     for t in TimeSlots:
@@ -427,10 +469,15 @@ def PrintProfessorSchedule(Visitors, Professors, TimeSlots, Meeting, p):
 
                 # Extend the print string to indicate unavailability
                 PrintString += ' Unavailable'
-            
+
+        # Add a newline character
+        PrintString += '\n'
 
         # Print out the result
-        print(PrintString)
+        File.write(PrintString)
+
+    # Close the file
+    File.close()
 
 def PrintAllProfessorSchedules(Visitors, Professors, TimeSlots, Meeting):
 
@@ -473,4 +520,4 @@ if __name__ == '__main__':
     PrintAllVisitorSchedules(Visitors, Professors, TimeSlots, Meeting)
 
     # Print out all the professors' schedules
-    # PrintAllProfessorSchedules(Visitors, Professors, TimeSlots, Meeting)
+    PrintAllProfessorSchedules(Visitors, Professors, TimeSlots, Meeting)
