@@ -1,5 +1,5 @@
 # Import the OR-Tools library
-from ortools.sat.python import cp_model
+from ortools.linear_solver import pywraplp
 
 # Import Pandas
 import pandas as pd
@@ -228,8 +228,8 @@ def BuildModel(Visitors, Professors, TimeSlots):
     # Print a status update
     print('Defining the optimization model...')
 
-    # Instantiate the CP model
-    model = cp_model.CpModel()
+    # Instantiate the model
+    model = pywraplp.Solver('simple_mip_program', pywraplp.Solver.CBC_MIXED_INTEGER_PROGRAMMING)
 
     # Create the model variables
     print('\tDefining the decision variables...')
@@ -237,7 +237,7 @@ def BuildModel(Visitors, Professors, TimeSlots):
     for v in Visitors:
         for p in Professors:
             for t in TimeSlots:
-                Meeting[(v,p,t)] = model.NewBoolVar('Visitor %d assigned to meet with Professor %d during time slot %d.' % (v, p, t))
+                Meeting[(v,p,t)] = model.IntVar(0, 1, 'Visitor %d assigned to meet with Professor %d during time slot %d.' % (v, p, t))
 
     # Create the constraints
     print('\tDefining the constraints...')
@@ -298,7 +298,7 @@ def BuildModel(Visitors, Professors, TimeSlots):
     # Return the model and the decision variable dictionary
     return (model, Meeting)
 
-def PrintVisitorSchedule(Visitors, Professors, TimeSlots, v, solver):
+def PrintVisitorSchedule(Visitors, Professors, TimeSlots, Meeting, v):
     # Prints out the schedule for the specified visitor
     #
     # Inputs:
@@ -320,7 +320,7 @@ def PrintVisitorSchedule(Visitors, Professors, TimeSlots, v, solver):
         for p in Professors:
 
             # check if the current visitor has a meeting scheduled with the current professor
-            if solver.Value(Meeting[(v,p,t)]) == True: # then a meeting between this visitor and professor has been scheduled
+            if Meeting[(v,p,t)].solution_value() == 1: # then a meeting between this visitor and professor has been scheduled
 
                 # Add the professor's name to the print string
                 PrintString += ' Professor %s' % Professors[p].LastName
@@ -337,28 +337,13 @@ def PrintVisitorSchedule(Visitors, Professors, TimeSlots, v, solver):
         # Print out the result
         print(PrintString)
 
-def PrintAllVisitorSchedules(Visitors, Professors, TimeSlots, solver):
+def PrintAllVisitorSchedules(Visitors, Professors, TimeSlots, Meeting):
 
     # Loop over all the visitors
     for v in Visitors:
 
         # Print out the schedule for this visitor
-        PrintVisitorSchedule(Visitors, Professors, TimeSlots, v, solver)
-
-# Define the callback function
-class SolutionPrinter(cp_model.CpSolverSolutionCallback):
-    """Print intermediate solutions."""
-
-    def __init__(self):
-        cp_model.CpSolverSolutionCallback.__init__(self)
-        self.__solution_count = 0
-
-    def on_solution_callback(self):
-        self.__solution_count += 1
-        print('Solutions found: %d Best objective value: %d Best Upper Bound: %d' % (self.__solution_count, self.ObjectiveValue(), self.BestObjectiveBound()))
-
-    def solution_count(self):
-        return self.__solution_count
+        PrintVisitorSchedule(Visitors, Professors, TimeSlots, Meeting, v)
 
 if __name__ == '__main__':
 
@@ -368,28 +353,26 @@ if __name__ == '__main__':
     # Import the professor and time slot information
     (Professors, TimeSlots) = ImportProfessorInfo()
 
-    # Artificially reduce the number of time slots
-    #TimeSlots = range(1)
-
     # Calculate the number of "preference points" that each visitor associates with each professor
     CalcPreferencePoints(Visitors, Professors)
 
     # Build the model
-    (model, Meeting) = BuildModel(Visitors, Professors, TimeSlots)
-
-    # Create the solver.
-    print('Solving the model...')
-    solver = cp_model.CpSolver()
-
-    # Set a time limit in seconds.
-    solver.parameters.max_time_in_seconds = 120
-
-    # Create the solution printer
-    SolutionPrinter = SolutionPrinter()
+    (model, Meeting) = BuildModel(Visitors, Professors, TimeSlots)   
 
     # Solve the model
-    solver.SolveWithSolutionCallback(model, SolutionPrinter)
-    print('Model solved!')
+    print('Solving the model...')
+    status = model.Solve()
+
+    # Check for optimality
+    if status == pywraplp.Solver.OPTIMAL:
+        
+        # Print a success message
+        print('Success! The model was solved to optimality.')
+
+    else:
+
+        # Display an error message
+        print('Error: The problem does not have an optimal solution.')
 
     # Print out all the visitors' schedules
-    PrintAllVisitorSchedules(Visitors, Professors, TimeSlots, solver)
+    PrintAllVisitorSchedules(Visitors, Professors, TimeSlots, Meeting)
