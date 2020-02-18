@@ -289,6 +289,21 @@ def BuildModel(Visitors, Professors, TimeSlots):
             MinMeetings
         )
 
+    ## Each visitor must have at least the minimum number of free periods
+    RequiredFreePeriods = 2
+    for v in Visitors:
+        model.Add(
+            sum(
+                sum(
+                    Meeting[(v,p,t)] 
+                    for t in TimeSlots
+                )
+                for p in Professors
+            )
+            <=
+            len(TimeSlots) - RequiredFreePeriods
+        )
+
     # Set the objective
     print('\tDefining the objective...')
 
@@ -458,4 +473,4 @@ if __name__ == '__main__':
     PrintAllVisitorSchedules(Visitors, Professors, TimeSlots, Meeting)
 
     # Print out all the professors' schedules
-    PrintAllProfessorSchedules(Visitors, Professors, TimeSlots, Meeting)
+    # PrintAllProfessorSchedules(Visitors, Professors, TimeSlots, Meeting)
