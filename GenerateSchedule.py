@@ -82,17 +82,21 @@ def ImportProfessorInfo():
     # Print out a status update
     print('Attempting to import the professor information from \"%s%s%s\"...' %(os.getcwd(), os.sep, ProfessorInfoExcelFile))
 
-    # Instantiate the dictionary of professors
-    Professors = dict()
-
     # Read the professor info into a data frame
     df = pd.read_excel(ProfessorInfoExcelFile)
 
     # Count the number of time slots
     NumTimeSlots = len(df.columns) - NonTimeColumns
 
-    # Generate the list of time slots
-    TimeSlots = range(NumTimeSlots)
+    # Generate the dictionary of time slots
+    TimeSlots = dict()
+    for t in range(NumTimeSlots):
+
+        # Add an entry for the current time slot
+        TimeSlots[t] = str(df.columns[NonTimeColumns + t])
+
+    # Instantiate the dictionary of professors
+    Professors = dict()
 
     # Loop over all the rows of the data frame
     for (i, row) in df.iterrows():
@@ -368,7 +372,7 @@ def PrintVisitorSchedule(Visitors, Professors, TimeSlots, Meeting, v):
     for t in TimeSlots:
 
         # Initialize the string to print
-        PrintString = '\tPeriod %d:' % t
+        PrintString = '\t%s (Period %d):' % (TimeSlots[t], t)
 
         # Initialize a flag to indicate that a meeting has not yet been found
         MeetingFound = False
@@ -439,7 +443,7 @@ def PrintProfessorSchedule(Visitors, Professors, TimeSlots, Meeting, p):
     for t in TimeSlots:
 
         # Initialize the string to print
-        PrintString = '\tPeriod %d:' % t
+        PrintString = '\t%s (Period %d):' % (TimeSlots[t], t)
 
         # Initialize a flag to indicate that a meeting has not yet been found
         MeetingFound = False
