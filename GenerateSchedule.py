@@ -149,9 +149,6 @@ def GetProfID(ProfLastName):
 
     else: # it's not there
 
-        # Raise a warning
-        print('Warning: No professor with the last name of %s could be found in the list of professors.' %ProfLastName)
-
         # Raise an error
         raise ValueError
 
@@ -167,6 +164,9 @@ def CalcPreferencePoints(Visitors, Professors):
 
     # Specify the maximum number of preference points
     MaxPreferencePoints = 10
+
+    # Instantiate the list of unrecognized professors
+    UnrecognizedProfs = []
 
     # Loop over each of the visitors
     for v in Visitors.values():
@@ -184,11 +184,26 @@ def CalcPreferencePoints(Visitors, Professors):
             # Lookup the id number corresponding to this professor
             try:
                 ProfId = GetProfID(ProfLastName)
-                GetIdSuccess = True
+                
             except ValueError:
-                print('Warning: Could not retrieve the ID number corresponding to Professor %s appearing in the list of preferred faculty for visitor %s %s.' %(ProfLastName, v.FirstName, v.LastName))
-                print('This entry in the list of preferred faculty will be ignored.  If you believe this is an error, please ensure that this professor appears in the Faculty Availability file.')
+
+                # Set the flag to indicate failure in the attempt to get the ID
                 GetIdSuccess = False
+
+                # check if the prof's last name has already been added to the list of unrecognized professors
+                if not ProfLastName in UnrecognizedProfs:
+
+                    # Print a warning message
+                    print('Warning: The name \"%s\" was found in the list of preferred professors for visitor %s %s and perhaps others.  However, no availability information was found for this professor.' %(ProfLastName, v.FirstName, v.LastName))
+                    print('         This entry in the list of preferred professors will be ignored.  If you believe this is an error, please ensure that this professor appears in the Faculty Availability file.')
+                
+                    # Add the prof to the list
+                    UnrecognizedProfs.append(ProfLastName)
+
+            else:
+
+                # Raise the flag to indicate success in getting the ID
+                GetIdSuccess = True
 
             # Check if the ID was successfully retrieved
             if GetIdSuccess == True:
