@@ -345,6 +345,62 @@ def PrintAllVisitorSchedules(Visitors, Professors, TimeSlots, Meeting):
         # Print out the schedule for this visitor
         PrintVisitorSchedule(Visitors, Professors, TimeSlots, Meeting, v)
 
+def PrintProfessorSchedule(Visitors, Professors, TimeSlots, Meeting, p):
+    # Prints out the schedule for the specified visitor
+    #
+    # Inputs:
+    #   p = the Id number of the professor whose schedule you'd like to print out
+    
+    # Print out the professor's name
+    print('Professor: %s' % Professors[p].LastName)
+
+    # Loop over the time slots
+    for t in TimeSlots:
+
+        # Initialize the string to print
+        PrintString = '\tPeriod %d:' % t
+
+        # Initialize a flag to indicate that a meeting has not yet been found
+        MeetingFound = False
+
+        # Loop over the visitors
+        for v in Visitors:
+
+            # check if the current visitor has a meeting scheduled with the current professor
+            if Meeting[(v,p,t)].solution_value() == 1: # then a meeting between this visitor and professor has been scheduled
+
+                # Add the visitor's name to the print string
+                PrintString += ' Visitor %s %s' % (Visitors[v].FirstName, Visitors[v].LastName)
+
+                # Raise the flag to indicate that a meeting was found
+                MeetingFound = True
+
+        # Check if a meeting was found
+        if MeetingFound == False: # then no meeting was found
+
+            # Check if the professor is available during this time slot
+            if Professors[p].Availability[t] == True:
+
+                # Extend the print string to indicate free time
+                PrintString += ' Free time (available)'
+
+            else:
+
+                # Extend the print string to indicate unavailability
+                PrintString += ' Unavailable'
+            
+
+        # Print out the result
+        print(PrintString)
+
+def PrintAllProfessorSchedules(Visitors, Professors, TimeSlots, Meeting):
+
+    # Loop over all the professors
+    for p in Professors:
+
+        # Print out the schedule for this professor
+        PrintProfessorSchedule(Visitors, Professors, TimeSlots, Meeting, p)
+
 if __name__ == '__main__':
 
     # Import the visitor information
@@ -376,3 +432,6 @@ if __name__ == '__main__':
 
     # Print out all the visitors' schedules
     PrintAllVisitorSchedules(Visitors, Professors, TimeSlots, Meeting)
+
+    # Print out all the professors' schedules
+    #PrintAllProfessorSchedules(Visitors, Professors, TimeSlots, Meeting)
