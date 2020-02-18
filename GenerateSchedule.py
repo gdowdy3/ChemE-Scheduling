@@ -233,11 +233,16 @@ def BuildModel(Visitors, Professors, TimeSlots):
 
     # Create the model variables
     print('\tDefining the decision variables...')
+
+    ## Primary decision variables
     Meeting = dict()
     for v in Visitors:
         for p in Professors:
             for t in TimeSlots:
                 Meeting[(v,p,t)] = model.IntVar(0, 1, 'Visitor %d assigned to meet with Professor %d during time slot %d.' % (v, p, t))
+
+    ## Secondary decision variables
+    MinMeetings = model.NumVar(0, model.infinity(), 'Minimum Meetings per Visitor')
 
     # Create the constraints
     print('\tDefining the constraints...')
@@ -270,12 +275,27 @@ def BuildModel(Visitors, Professors, TimeSlots):
                 sum(Meeting[(v,p,t)] for t in TimeSlots) <= 1
             )
 
+    ## Each visitor must have at least the minimum number of meetings
+    for v in Visitors:
+        model.Add(
+            sum(
+                sum(
+                    Meeting[(v,p,t)] 
+                    for t in TimeSlots
+                )
+                for p in Professors
+            )
+            >=
+            MinMeetings
+        )
+
     # Set the objective
     print('\tDefining the objective...')
 
     ## Define the weights of the various objectives
     Weight = {
-        'Maximize the happiness points' : 1
+        'Maximize the happiness points' : 1,
+        'Maximize the minimum number of meetings': 1
     }
 
     ## Define the objective
@@ -293,6 +313,10 @@ def BuildModel(Visitors, Professors, TimeSlots):
             )
             for p in Professors
         )
+
+        +
+
+        Weight['Maximize the minimum number of meetings'] * MinMeetings
     )
 
     # Return the model and the decision variable dictionary
@@ -434,4 +458,4 @@ if __name__ == '__main__':
     PrintAllVisitorSchedules(Visitors, Professors, TimeSlots, Meeting)
 
     # Print out all the professors' schedules
-    #PrintAllProfessorSchedules(Visitors, Professors, TimeSlots, Meeting)
+    PrintAllProfessorSchedules(Visitors, Professors, TimeSlots, Meeting)
