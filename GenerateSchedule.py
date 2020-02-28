@@ -17,6 +17,8 @@ class Visitor():
         self.LastName = ''
         self.PreferredProfessors = []  # the rank-ordered list of preferred professors, with the first professor in the list being the most preferred.
         self.PreferencePoints = dict() # a dictionary which maps professor id numbers to preference points.  The more desirable the professor, the greater the points.  If a professor is absent from this dictionary, they are assumed to be associated with zero preference points.
+        self.Happiness = 0
+        self.NumberOfMeetings = 0
 
 # Define the professor class
 class Professor():
@@ -26,6 +28,7 @@ class Professor():
         self.FirstName = ''
         self.LastName = ''
         self.Availability = dict() # a dictionary mapping each time slot to a boolean, with True indicating the professor is available during that time slot, and False indicating that they are unavailable.
+        self.NumberOfMeetingsAvailable = 0
 
 # Define the function for reading in the visitor information
 def ImportVisitorInfo():
@@ -263,6 +266,8 @@ def BuildModel(Visitors, Professors, TimeSlots):
     ## Secondary decision variables
     MinMeetings = model.NumVar(0, model.infinity(), 'Minimum Meetings per Visitor')
 
+    MinHappiness = model.NumVar(0, model.infinity(), 'Minimum Happiness per Visitor')
+
     # Create the constraints
     print('\tDefining the constraints...')
     ## Each visitor can meet with at most one professor during any given time slot
@@ -308,6 +313,20 @@ def BuildModel(Visitors, Professors, TimeSlots):
             MinMeetings
         )
 
+    ## Each visitor must have at least the minimum happiness score
+    for v in Visitors:
+        model.Add(
+            sum(
+                sum(
+                    Meeting[(v,p,t)] * Visitors[v].PreferencePoints[p]
+                    for t in TimeSlots
+                )
+                for p in Professors
+            )
+            >=
+            MinHappiness
+        )
+
     ## Each visitor must have at least the minimum number of free periods
     RequiredFreePeriods = 2
     for v in Visitors:
@@ -329,7 +348,9 @@ def BuildModel(Visitors, Professors, TimeSlots):
     ## Define the weights of the various objectives
     Weight = {
         'Maximize the happiness points' : 1,
-        'Maximize the minimum number of meetings': 1
+        'Maximize the number of meetings' : 0.1,
+        'Maximize the minimum number of meetings': 1,
+        'Maximize the minimum happiness score': 1
     }
 
     ## Define the objective
@@ -350,7 +371,25 @@ def BuildModel(Visitors, Professors, TimeSlots):
 
         +
 
+        Weight['Maximize the number of meetings'] *
+        sum(
+            sum(
+                sum(
+                    Meeting[(v,p,t)]
+                    for t in TimeSlots
+                )
+                for v in Visitors
+            )
+            for p in Professors
+        )
+
+        +
+
         Weight['Maximize the minimum number of meetings'] * MinMeetings
+
+        +
+
+        Weight['Maximize the minimum happiness score'] * MinHappiness
     )
 
     # Return the model and the decision variable dictionary
@@ -506,6 +545,117 @@ def PrintAllProfessorSchedules(Visitors, Professors, TimeSlots, Meeting):
         # Print out the schedule for this professor
         PrintProfessorSchedule(Visitors, Professors, TimeSlots, Meeting, p)
 
+
+def CalcVisitorHappiness(Visitors, Professors, TimeSlots, Meeting):
+
+    # Calculate the happiness of each visitor
+    for v in Visitors:
+
+        # Loop over their list of professors
+        for p in Professors:
+
+            # Check if they were assigned a meeting with that professor
+            if sum(Meeting[(v,p,t)].solution_value() for t in TimeSlots) == 1:  # They were assigned a meeting with that professor
+
+                # Increment their happiness accordingly
+                Visitors[v].Happiness += Visitors[v].PreferencePoints[p]
+
+                # Increment their meeting count accordingly
+                Visitors[v].NumberOfMeetings += 1
+
+def CalcMeetingsAvailable(Professors, TimeSlots):
+
+    # Loop over the list of professors
+    for p in Professors:
+
+        # Loop over the time slots
+        for t in TimeSlots:
+
+            # Check if the prof is available during this time slot
+            if Professors[p].Availability[t] == True:  # they are available
+
+                # Increment their count of meetings available
+                Professors[p].NumberOfMeetingsAvailable += 1
+
+def PrintSummaryStatistics(Visitors, Professors, TimeSlots, Meeting):
+    # This function prints some statistics to help assess the quality of the meeting assignments
+
+    # Get the list of happiness scores
+    HappinessScores = [Visitors[v].Happiness for v in Visitors]
+
+    # Import the statistics module
+    import statistics as stats
+
+    # Print the mean happiness
+    print('The mean happiness score is: %f' % stats.mean(HappinessScores))
+
+    # Print the median happiness
+    print('The median happiness score is: %f' % stats.median(HappinessScores))
+
+    # Print the max happiness
+    print('The max happiness score is: %f' % max(HappinessScores))
+
+    # Print the min happiness
+    print('The min happiness score is: %f' % min(HappinessScores))
+
+    # Find the least happy visitors
+    for v in Visitors:
+
+        # Check if they are among the least happy
+        if Visitors[v].Happiness == min(HappinessScores):
+
+            # Print the visitor's name
+            print('\tCheck %s %s' % (Visitors[v].FirstName, Visitors[v].LastName))
+
+    # Print the standard deviation happiness
+    print('The standard deviation in happiness scores is: %f' % stats.stdev(HappinessScores))
+
+    # Get the list of meeting counts
+    MeetingCounts = [Visitors[v].NumberOfMeetings for v in Visitors]
+
+    # Print the mean number of meetings
+    print('The mean number of meetings is: %f' % stats.mean(MeetingCounts))
+
+    # Print the median happiness
+    print('The median number of meetings is: %f' % stats.median(MeetingCounts))
+
+    # Print the max happiness
+    print('The max number of meetings is: %f' % max(MeetingCounts))
+
+    # Print the min happiness
+    print('The min number of meetings is: %f' % min(MeetingCounts))
+
+    # Find the visitors with the least meetings
+    for v in Visitors:
+
+        # Check if they are among those with the fewest meetings
+        if Visitors[v].NumberOfMeetings == min(MeetingCounts):
+
+            # Print the visitor's name
+            print('\tCheck %s %s' % (Visitors[v].FirstName, Visitors[v].LastName))
+
+    # Print the standard deviation in the number of meetings
+    print('The standard deviation in the number of meetings is: %f' % stats.stdev(MeetingCounts))
+
+    # Get the list of number of meetings available for each prof
+    MeetingsAvailable = [Professors[p].NumberOfMeetingsAvailable for p in Professors]
+
+    # Calculate the total number of meetings available
+    TotalMeetingsAvailable = sum(MeetingsAvailable)
+    print('Total meetings with faculty available: %d' % TotalMeetingsAvailable)
+
+    # Calculate the total number of meetings arranged
+    TotalMeetingsScheduled = sum(MeetingCounts)
+    print('Total meetings with faculty scheduled: %d' % TotalMeetingsScheduled)
+
+    # Calculate the fraction of available meetings scheduled
+    print('Percentage of available meetings scheduled %.1f%%' % (float(TotalMeetingsScheduled)/float(TotalMeetingsAvailable)*100))
+
+    # Calculate the minimum number of meetings that you could guarantee each student
+    import math
+    print('Given the faculty availability, the minimum number of meetings we could guarantee each visitor is: %d' % math.floor(TotalMeetingsAvailable / len(Visitors)))
+        
+
 if __name__ == '__main__':
 
     # Import the visitor information
@@ -535,6 +685,15 @@ if __name__ == '__main__':
         # Display an error message
         print('Error: I was unable to solve the model.')
 
+    # Calculate visitor happiness
+    CalcVisitorHappiness(Visitors, Professors, TimeSlots, Meeting)
+
+    # Count the number of meetings each prof is available
+    CalcMeetingsAvailable(Professors, TimeSlots)
+
+    # Print out some summary statistics
+    PrintSummaryStatistics(Visitors, Professors, TimeSlots, Meeting)
+    
     # Print out all the visitors' schedules
     print('Writing out the schedule for each visitor...')
     PrintAllVisitorSchedules(Visitors, Professors, TimeSlots, Meeting)
