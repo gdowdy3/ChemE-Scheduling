@@ -649,7 +649,7 @@ def PrintSummaryStatistics(Visitors, Professors, TimeSlots, Meeting):
     print('Total meetings with faculty scheduled: %d' % TotalMeetingsScheduled)
 
     # Calculate the fraction of available meetings scheduled
-    print('Percentage of available meetings scheduled %.1f%%' % (float(TotalMeetingsScheduled)/float(TotalMeetingsAvailable)*100))
+    print('Percentage of available meetings scheduled: %.1f%%' % (float(TotalMeetingsScheduled)/float(TotalMeetingsAvailable)*100))
 
     # Calculate the minimum number of meetings that you could guarantee each student
     import math
