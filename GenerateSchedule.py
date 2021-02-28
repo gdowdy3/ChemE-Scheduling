@@ -17,6 +17,7 @@ class Visitor():
         self.LastName = ''
         self.PreferredProfessors = []  # the rank-ordered list of preferred professors, with the first professor in the list being the most preferred.
         self.PreferencePoints = dict() # a dictionary which maps professor id numbers to preference points.  The more desirable the professor, the greater the points.  If a professor is absent from this dictionary, they are assumed to be associated with zero preference points.
+        self.Availability = '' # This indicates when the visitor is available for meetings.  Three values are valid: 'morning', 'afternoon', and 'na'.
         self.Happiness = 0
         self.NumberOfMeetings = 0
 
@@ -60,6 +61,9 @@ def ImportVisitorInfo():
 
         # Retrieve the list of preferred professors as a string
         PreferredProfessorsString = row['Faculty list']
+
+        # Retrieve the visitor's availability
+        v.Availability = str(row['Category'])
         
         # Convert the string into a list
         v.PreferredProfessors = PreferredProfessorsString.split(', ')
@@ -212,7 +216,7 @@ def CalcPreferencePoints(Visitors, Professors):
             if GetIdSuccess == True:
 
                 # Add the professor to the dictionary with the appropriate number of preference points
-                v.PreferencePoints[ProfId] = MaxPreferencePoints - i
+                v.PreferencePoints[ProfId] = 1
 
         # Print the results for the current visitor
         #PrintPreferencePoints(v, Professors)
@@ -251,7 +255,7 @@ def BuildModel(Visitors, Professors, TimeSlots):
     print('Defining the optimization model...')
 
     # Instantiate the model
-    model = pywraplp.Solver('simple_mip_program', pywraplp.Solver.CBC_MIXED_INTEGER_PROGRAMMING)
+    model = pywraplp.Solver.CreateSolver('cbc')
 
     # Create the model variables
     print('\tDefining the decision variables...')
@@ -276,6 +280,24 @@ def BuildModel(Visitors, Professors, TimeSlots):
             model.Add(
                 sum(Meeting[(v,p,t)] for p in Professors) <= 1
             )
+
+    ## Visitors can only attend meetings permitted by their timezones
+    for v in Visitors:
+        if Visitors[v].Availability == 'morning':
+            for t in TimeSlots:
+                if t >= 8:
+                    for p in Professors:
+                        model.Add(
+                            Meeting[v,p,t] == 0
+                        )
+
+        elif Visitors[v].Availability == 'afternoon':
+            for t in TimeSlots:
+                if t < 8:
+                    for p in Professors:
+                        model.Add(
+                            Meeting[v,p,t] == 0
+                        )
 
     ## Each professor can meet with at most one visitor during any given time slot
     for p in Professors:
@@ -328,7 +350,7 @@ def BuildModel(Visitors, Professors, TimeSlots):
         )
 
     ## Each visitor must have at least the minimum number of free periods
-    RequiredFreePeriods = 2
+    RequiredFreePeriods = 8
     for v in Visitors:
         model.Add(
             sum(
@@ -545,7 +567,6 @@ def PrintAllProfessorSchedules(Visitors, Professors, TimeSlots, Meeting):
         # Print out the schedule for this professor
         PrintProfessorSchedule(Visitors, Professors, TimeSlots, Meeting, p)
 
-
 def CalcVisitorHappiness(Visitors, Professors, TimeSlots, Meeting):
 
     # Calculate the happiness of each visitor
@@ -670,20 +691,72 @@ if __name__ == '__main__':
     # Build the model
     (model, Meeting) = BuildModel(Visitors, Professors, TimeSlots)   
 
+    # Enable output
+    model.EnableOutput()
+
+    # Set the time limit
+    MaxMinutes = 1
+    model.set_time_limit(round(1000*60*MaxMinutes))
+
     # Solve the model
     print('Solving the model...')
     status = model.Solve()
 
     # Check for optimality
     if status == pywraplp.Solver.OPTIMAL:
-        
-        # Print a success message
-        print('Success! The model was solved to optimality.')
+
+        # Display a success message
+        print('Optimal solution found!')
+
+    elif status == pywraplp.Solver.INFEASIBLE:
+
+        # Display an error message
+        print('Error: The model was found to be infeasible.')
+        exit()
+
+    elif status == pywraplp.Solver.NOT_SOLVED:
+
+        # Display an error message
+        print('Error: The model was not solved to completion.  Consider increasing the amount of time allowed to solve the model.')
+        exit()
+
+    elif status == pywraplp.Solver.UNBOUNDED:
+
+        # Display an error message
+        print('Error: The model was found to be unbounded.')
+        exit()
+
+    elif status == pywraplp.Solver.ABNORMAL:
+
+        # Display an error message
+        print('Error: The solver exited with an abnormal status. Consider increasing the amount of time allowed to solve the model.')
+        exit()
 
     else:
 
-        # Display an error message
-        print('Error: I was unable to solve the model.')
+        # Give a status update
+        print('Warning: The model was not solved to completion.  Calculating the optimality gap...')
+
+        # Calculate the optimality gap
+        OptimalityGap = model.Objective().BestBound() - model.Objective().Value()
+        RelativeOptimalityGap = OptimalityGap / max(model.Objective().BestBound(), 0.001)
+
+        # Print the optimality gap
+        print('The optimality gap is %f%%' % (RelativeOptimalityGap * 100))
+
+        if RelativeOptimalityGap > 0.01:
+
+            # Display an error message
+            print('Error: I was unable to solve the model to the desired precision in the time allotted. Consider increasing the amount of time allowed to solve the model.')
+            exit()
+
+        else:
+
+            # Print a partial success message
+            print('The model was solved to within an acceptable optimality gap.')
+
+    # Print a success message
+    print('Success!')
 
     # Calculate visitor happiness
     CalcVisitorHappiness(Visitors, Professors, TimeSlots, Meeting)
