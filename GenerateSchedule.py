@@ -34,7 +34,7 @@ class Professor():
 def ImportVisitorInfo():
 
     # Specify the name of the excel file
-    VisitorInfoExcelFile = 'Visitor Preferences.xlsx'
+    VisitorInfoExcelFile = 'Input Data.xlsx'
 
     # Print out a status update
     print('Attempting to import the visitor information from \"%s%s%s\"...' %(os.getcwd(), os.sep, VisitorInfoExcelFile))
@@ -43,7 +43,7 @@ def ImportVisitorInfo():
     Visitors = dict()
 
     # Read the visitor preferences into a data frame
-    df = pd.read_excel(VisitorInfoExcelFile)
+    df = pd.read_excel(io=VisitorInfoExcelFile, sheet_name='Visitor Preferences')
 
     # Loop over all the rows of the data frame
     for (i, row) in df.iterrows():
@@ -80,7 +80,7 @@ def ImportVisitorInfo():
 def ImportProfessorInfo():
 
      # Specify the name of the excel file
-    ProfessorInfoExcelFile = 'Professor Availability.xlsx'
+    ProfessorInfoExcelFile = 'Input Data.xlsx'
 
     # Specify the number of columns that do not correspond to a time slot
     NonTimeColumns = 1
@@ -89,7 +89,7 @@ def ImportProfessorInfo():
     print('Attempting to import the professor information from \"%s%s%s\"...' %(os.getcwd(), os.sep, ProfessorInfoExcelFile))
 
     # Read the professor info into a data frame
-    df = pd.read_excel(ProfessorInfoExcelFile)
+    df = pd.read_excel(io=ProfessorInfoExcelFile, sheet_name='Professor Availability')
 
     # Count the number of time slots
     NumTimeSlots = len(df.columns) - NonTimeColumns
