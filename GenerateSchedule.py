@@ -36,6 +36,9 @@ def ImportVisitorInfo():
     # Specify the name of the excel file
     VisitorInfoExcelFile = 'Input Data.xlsx'
 
+    # Identify the sheet the data is coming from
+    SheetName = 'Visitor Preferences'
+
     # Print out a status update
     print('Attempting to import the visitor information from \"%s%s%s\"...' %(os.getcwd(), os.sep, VisitorInfoExcelFile))
 
@@ -43,7 +46,21 @@ def ImportVisitorInfo():
     Visitors = dict()
 
     # Read the visitor preferences into a data frame
-    df = pd.read_excel(io=VisitorInfoExcelFile, sheet_name='Visitor Preferences')
+    df = pd.read_excel(io=VisitorInfoExcelFile, sheet_name=SheetName)
+
+    # List the expected columns
+    ExpectedColumns = [
+        'First Name',
+        'Last Name',
+        'Availability',
+        'Preferred Professor Meetings',
+    ]
+
+    # Check that each of the expected columns is present
+    for ColName in ExpectedColumns:
+        if ColName not in df.columns:
+            print('Error: I was expecting the \"%s\" sheet to have a column called \"%s\", but I could find no such column.' % (SheetName, ColName))
+            exit()
 
     # Loop over all the rows of the data frame
     for (i, row) in df.iterrows():
@@ -82,14 +99,28 @@ def ImportProfessorInfo():
      # Specify the name of the excel file
     ProfessorInfoExcelFile = 'Input Data.xlsx'
 
-    # Specify the number of columns that do not correspond to a time slot
-    NonTimeColumns = 1
+    # Identify the sheet
+    SheetName = 'Professor Availability'
 
     # Print out a status update
     print('Attempting to import the professor information from \"%s%s%s\"...' %(os.getcwd(), os.sep, ProfessorInfoExcelFile))
 
     # Read the professor info into a data frame
-    df = pd.read_excel(io=ProfessorInfoExcelFile, sheet_name='Professor Availability')
+    df = pd.read_excel(io=ProfessorInfoExcelFile, sheet_name=SheetName)
+
+    # List the expected columns
+    ExpectedColumns = [
+        'Last Name',
+    ]
+
+    # Check that each of the expected columns is present
+    for ColName in ExpectedColumns:
+        if ColName not in df.columns:
+            print('Error: I was expecting the \"%s\" sheet to have a column called \"%s\", but I could find no such column.' % (SheetName, ColName))
+            exit()
+
+    # Count the number of columns that do not correspond to a time slot
+    NonTimeColumns = len(ExpectedColumns)
 
     # Count the number of time slots
     NumTimeSlots = len(df.columns) - NonTimeColumns
