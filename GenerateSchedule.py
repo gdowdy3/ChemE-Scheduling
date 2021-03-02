@@ -26,7 +26,6 @@ class Professor():
 
     def __init__(self):
         self.Id = 0
-        self.FirstName = ''
         self.LastName = ''
         self.Availability = dict() # a dictionary mapping each time slot to a boolean, with True indicating the professor is available during that time slot, and False indicating that they are unavailable.
         self.NumberOfMeetingsAvailable = 0
@@ -60,7 +59,7 @@ def ImportVisitorInfo():
         v.LastName = row['Last Name']
 
         # Retrieve the list of preferred professors as a string
-        PreferredProfessorsString = row['Preferred Faculty Meetings']
+        PreferredProfessorsString = row['Preferred Professor Meetings']
 
         # Retrieve the visitor's availability
         v.Availability = str(row['Availability'])
@@ -81,10 +80,10 @@ def ImportVisitorInfo():
 def ImportProfessorInfo():
 
      # Specify the name of the excel file
-    ProfessorInfoExcelFile = 'Faculty Availability.xlsx'
+    ProfessorInfoExcelFile = 'Professor Availability.xlsx'
 
     # Specify the number of columns that do not correspond to a time slot
-    NonTimeColumns = 2
+    NonTimeColumns = 1
 
     # Print out a status update
     print('Attempting to import the professor information from \"%s%s%s\"...' %(os.getcwd(), os.sep, ProfessorInfoExcelFile))
@@ -115,7 +114,6 @@ def ImportProfessorInfo():
         p.Id = i
 
         # Retrieve the professor's first and last name
-        p.FirstName = row['First Name']
         p.LastName = row['Last Name']
 
         # Loop over the time slots
@@ -200,7 +198,7 @@ def CalcPreferencePoints(Visitors, Professors):
 
                     # Print a warning message
                     print('Warning: The name \"%s\" was found in the list of preferred professors for visitor %s %s and perhaps others.  However, no availability information was found for this professor.' %(ProfLastName, v.FirstName, v.LastName))
-                    print('         This entry in the list of preferred professors will be ignored.  If you believe this is an error, please ensure that this professor appears in the Faculty Availability file.')
+                    print('         This entry in the list of preferred professors will be ignored.  If you believe this is an error, please ensure that this professor appears in the Professor Availability file.')
                 
                     # Add the prof to the list
                     UnrecognizedProfs.append(ProfLastName)
@@ -668,18 +666,18 @@ def PrintSummaryStatistics(Visitors, Professors, TimeSlots, Meeting):
 
     # Calculate the total number of meetings available
     TotalMeetingsAvailable = sum(MeetingsAvailable)
-    print('Total meetings with faculty available: %d' % TotalMeetingsAvailable)
+    print('Total meetings with professors available: %d' % TotalMeetingsAvailable)
 
     # Calculate the total number of meetings arranged
     TotalMeetingsScheduled = sum(MeetingCounts)
-    print('Total meetings with faculty scheduled: %d' % TotalMeetingsScheduled)
+    print('Total meetings with professors scheduled: %d' % TotalMeetingsScheduled)
 
     # Calculate the fraction of available meetings scheduled
     print('Percentage of available meetings scheduled: %.1f%%' % (float(TotalMeetingsScheduled)/float(TotalMeetingsAvailable)*100))
 
     # Calculate the minimum number of meetings that you could guarantee each student
     import math
-    print('Given the faculty availability, the minimum number of meetings we could guarantee each visitor is: %d' % math.floor(TotalMeetingsAvailable / len(Visitors)))
+    print('Given the professor availability, the minimum number of meetings we could guarantee each visitor is: %d' % math.floor(TotalMeetingsAvailable / len(Visitors)))
 
     # Mark the end of the summary   
     print('-------END OF SUMMARY STATISTICS---------')
