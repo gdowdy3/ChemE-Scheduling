@@ -56,14 +56,14 @@ def ImportVisitorInfo():
         v.Id = i
 
         # Retrieve the visitor's first and last name
-        v.FirstName = row['First']
-        v.LastName = row['Last']
+        v.FirstName = row['First Name']
+        v.LastName = row['Last Name']
 
         # Retrieve the list of preferred professors as a string
-        PreferredProfessorsString = row['Faculty list']
+        PreferredProfessorsString = row['Preferred Faculty Meetings']
 
         # Retrieve the visitor's availability
-        v.Availability = str(row['Category'])
+        v.Availability = str(row['Availability'])
         
         # Convert the string into a list
         v.PreferredProfessors = PreferredProfessorsString.split(', ')
@@ -72,7 +72,7 @@ def ImportVisitorInfo():
         Visitors[v.Id] = v
 
     # Print out a status update
-    print('Successfully read in the information of %d visitors.' %len(Visitors) )
+    print('\tSuccessfully read in the information of %d visitors.' %len(Visitors) )
 
     # Return the result
     return Visitors
@@ -84,7 +84,7 @@ def ImportProfessorInfo():
     ProfessorInfoExcelFile = 'Faculty Availability.xlsx'
 
     # Specify the number of columns that do not correspond to a time slot
-    NonTimeColumns = 1
+    NonTimeColumns = 2
 
     # Print out a status update
     print('Attempting to import the professor information from \"%s%s%s\"...' %(os.getcwd(), os.sep, ProfessorInfoExcelFile))
@@ -115,10 +115,8 @@ def ImportProfessorInfo():
         p.Id = i
 
         # Retrieve the professor's first and last name
-        NameString = row['Faculty']
-        NameList = NameString.split(', ')
-        p.FirstName = NameList[1]
-        p.LastName = NameList[0]
+        p.FirstName = row['First Name']
+        p.LastName = row['Last Name']
 
         # Loop over the time slots
         for t in TimeSlots:
@@ -133,7 +131,7 @@ def ImportProfessorInfo():
         Professors[p.Id] = p
 
     # Print out a status update
-    print('Successfully read in the information of %d professors.' %len(Professors) )
+    print('\tSuccessfully read in the information of %d professors.' %len(Professors) )
 
     # Return the result
     return (Professors, TimeSlots)
@@ -607,6 +605,9 @@ def PrintSummaryStatistics(Visitors, Professors, TimeSlots, Meeting):
     # Import the statistics module
     import statistics as stats
 
+    # Print a header
+    print('-------SUMMARY STATISTICS---------')
+
     # Print the mean happiness
     print('The mean happiness score is: %f' % stats.mean(HappinessScores))
 
@@ -625,8 +626,10 @@ def PrintSummaryStatistics(Visitors, Professors, TimeSlots, Meeting):
         # Check if they are among the least happy
         if Visitors[v].Happiness == min(HappinessScores):
 
-            # Print the visitor's name
-            print('\tCheck %s %s' % (Visitors[v].FirstName, Visitors[v].LastName))
+            if Visitors[v].Happiness < stats.median(HappinessScores):
+
+                # Print the visitor's name
+                print('\tCheck %s %s' % (Visitors[v].FirstName, Visitors[v].LastName))
 
     # Print the standard deviation happiness
     print('The standard deviation in happiness scores is: %f' % stats.stdev(HappinessScores))
@@ -652,8 +655,10 @@ def PrintSummaryStatistics(Visitors, Professors, TimeSlots, Meeting):
         # Check if they are among those with the fewest meetings
         if Visitors[v].NumberOfMeetings == min(MeetingCounts):
 
-            # Print the visitor's name
-            print('\tCheck %s %s' % (Visitors[v].FirstName, Visitors[v].LastName))
+            if Visitors[v].NumberOfMeetings < stats.median(MeetingCounts):
+
+                # Print the visitor's name
+                print('\tCheck %s %s' % (Visitors[v].FirstName, Visitors[v].LastName))
 
     # Print the standard deviation in the number of meetings
     print('The standard deviation in the number of meetings is: %f' % stats.stdev(MeetingCounts))
@@ -675,7 +680,9 @@ def PrintSummaryStatistics(Visitors, Professors, TimeSlots, Meeting):
     # Calculate the minimum number of meetings that you could guarantee each student
     import math
     print('Given the faculty availability, the minimum number of meetings we could guarantee each visitor is: %d' % math.floor(TotalMeetingsAvailable / len(Visitors)))
-        
+
+    # Mark the end of the summary   
+    print('-------END OF SUMMARY STATISTICS---------')
 
 if __name__ == '__main__':
 
@@ -692,14 +699,14 @@ if __name__ == '__main__':
     (model, Meeting) = BuildModel(Visitors, Professors, TimeSlots)   
 
     # Enable output
-    model.EnableOutput()
+    # model.EnableOutput()
 
     # Set the time limit
     MaxMinutes = 1
     model.set_time_limit(round(1000*60*MaxMinutes))
 
     # Solve the model
-    print('Solving the model...')
+    print('Solving the model... (This may take a few minutes)')
     status = model.Solve()
 
     # Check for optimality
