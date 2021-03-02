@@ -17,6 +17,7 @@ class Visitor():
         self.LastName = ''
         self.PreferredProfessors = []  # the rank-ordered list of preferred professors, with the first professor in the list being the most preferred.
         self.PreferencePoints = dict() # a dictionary which maps professor id numbers to preference points.  The more desirable the professor, the greater the points.  If a professor is absent from this dictionary, they are assumed to be associated with zero preference points.
+        self.Availability = '' # This indicates when the visitor is available for meetings.  Three values are valid: 'morning', 'afternoon', and 'na'.
         self.Happiness = 0
         self.NumberOfMeetings = 0
 
@@ -25,7 +26,6 @@ class Professor():
 
     def __init__(self):
         self.Id = 0
-        self.FirstName = ''
         self.LastName = ''
         self.Availability = dict() # a dictionary mapping each time slot to a boolean, with True indicating the professor is available during that time slot, and False indicating that they are unavailable.
         self.NumberOfMeetingsAvailable = 0
@@ -34,7 +34,10 @@ class Professor():
 def ImportVisitorInfo():
 
     # Specify the name of the excel file
-    VisitorInfoExcelFile = 'Visitor Preferences.xlsx'
+    VisitorInfoExcelFile = 'Input Data.xlsx'
+
+    # Identify the sheet the data is coming from
+    SheetName = 'Visitor Preferences'
 
     # Print out a status update
     print('Attempting to import the visitor information from \"%s%s%s\"...' %(os.getcwd(), os.sep, VisitorInfoExcelFile))
@@ -43,7 +46,21 @@ def ImportVisitorInfo():
     Visitors = dict()
 
     # Read the visitor preferences into a data frame
-    df = pd.read_excel(VisitorInfoExcelFile)
+    df = pd.read_excel(io=VisitorInfoExcelFile, sheet_name=SheetName)
+
+    # List the expected columns
+    ExpectedColumns = [
+        'First Name',
+        'Last Name',
+        'Availability',
+        'Preferred Professor Meetings',
+    ]
+
+    # Check that each of the expected columns is present
+    for ColName in ExpectedColumns:
+        if ColName not in df.columns:
+            print('Error: I was expecting the \"%s\" sheet to have a column called \"%s\", but I could find no such column.' % (SheetName, ColName))
+            exit()
 
     # Loop over all the rows of the data frame
     for (i, row) in df.iterrows():
@@ -55,11 +72,14 @@ def ImportVisitorInfo():
         v.Id = i
 
         # Retrieve the visitor's first and last name
-        v.FirstName = row['First']
-        v.LastName = row['Last']
+        v.FirstName = row['First Name']
+        v.LastName = row['Last Name']
 
         # Retrieve the list of preferred professors as a string
-        PreferredProfessorsString = row['Faculty list']
+        PreferredProfessorsString = row['Preferred Professor Meetings']
+
+        # Retrieve the visitor's availability
+        v.Availability = str(row['Availability'])
         
         # Convert the string into a list
         v.PreferredProfessors = PreferredProfessorsString.split(', ')
@@ -68,7 +88,7 @@ def ImportVisitorInfo():
         Visitors[v.Id] = v
 
     # Print out a status update
-    print('Successfully read in the information of %d visitors.' %len(Visitors) )
+    print('\tSuccessfully read in the information of %d visitors.' %len(Visitors) )
 
     # Return the result
     return Visitors
@@ -77,16 +97,30 @@ def ImportVisitorInfo():
 def ImportProfessorInfo():
 
      # Specify the name of the excel file
-    ProfessorInfoExcelFile = 'Faculty Availability.xlsx'
+    ProfessorInfoExcelFile = 'Input Data.xlsx'
 
-    # Specify the number of columns that do not correspond to a time slot
-    NonTimeColumns = 1
+    # Identify the sheet
+    SheetName = 'Professor Availability'
 
     # Print out a status update
     print('Attempting to import the professor information from \"%s%s%s\"...' %(os.getcwd(), os.sep, ProfessorInfoExcelFile))
 
     # Read the professor info into a data frame
-    df = pd.read_excel(ProfessorInfoExcelFile)
+    df = pd.read_excel(io=ProfessorInfoExcelFile, sheet_name=SheetName)
+
+    # List the expected columns
+    ExpectedColumns = [
+        'Last Name',
+    ]
+
+    # Check that each of the expected columns is present
+    for ColName in ExpectedColumns:
+        if ColName not in df.columns:
+            print('Error: I was expecting the \"%s\" sheet to have a column called \"%s\", but I could find no such column.' % (SheetName, ColName))
+            exit()
+
+    # Count the number of columns that do not correspond to a time slot
+    NonTimeColumns = len(ExpectedColumns)
 
     # Count the number of time slots
     NumTimeSlots = len(df.columns) - NonTimeColumns
@@ -111,10 +145,7 @@ def ImportProfessorInfo():
         p.Id = i
 
         # Retrieve the professor's first and last name
-        NameString = row['Faculty']
-        NameList = NameString.split(', ')
-        p.FirstName = NameList[1]
-        p.LastName = NameList[0]
+        p.LastName = row['Last Name']
 
         # Loop over the time slots
         for t in TimeSlots:
@@ -129,7 +160,7 @@ def ImportProfessorInfo():
         Professors[p.Id] = p
 
     # Print out a status update
-    print('Successfully read in the information of %d professors.' %len(Professors) )
+    print('\tSuccessfully read in the information of %d professors.' %len(Professors) )
 
     # Return the result
     return (Professors, TimeSlots)
@@ -198,7 +229,7 @@ def CalcPreferencePoints(Visitors, Professors):
 
                     # Print a warning message
                     print('Warning: The name \"%s\" was found in the list of preferred professors for visitor %s %s and perhaps others.  However, no availability information was found for this professor.' %(ProfLastName, v.FirstName, v.LastName))
-                    print('         This entry in the list of preferred professors will be ignored.  If you believe this is an error, please ensure that this professor appears in the Faculty Availability file.')
+                    print('         This entry in the list of preferred professors will be ignored.  If you believe this is an error, please ensure that this professor appears in the Professor Availability file.')
                 
                     # Add the prof to the list
                     UnrecognizedProfs.append(ProfLastName)
@@ -212,7 +243,7 @@ def CalcPreferencePoints(Visitors, Professors):
             if GetIdSuccess == True:
 
                 # Add the professor to the dictionary with the appropriate number of preference points
-                v.PreferencePoints[ProfId] = MaxPreferencePoints - i
+                v.PreferencePoints[ProfId] = 1
 
         # Print the results for the current visitor
         #PrintPreferencePoints(v, Professors)
@@ -251,7 +282,7 @@ def BuildModel(Visitors, Professors, TimeSlots):
     print('Defining the optimization model...')
 
     # Instantiate the model
-    model = pywraplp.Solver('simple_mip_program', pywraplp.Solver.CBC_MIXED_INTEGER_PROGRAMMING)
+    model = pywraplp.Solver.CreateSolver('cbc')
 
     # Create the model variables
     print('\tDefining the decision variables...')
@@ -276,6 +307,24 @@ def BuildModel(Visitors, Professors, TimeSlots):
             model.Add(
                 sum(Meeting[(v,p,t)] for p in Professors) <= 1
             )
+
+    ## Visitors can only attend meetings permitted by their timezones
+    for v in Visitors:
+        if Visitors[v].Availability == 'morning':
+            for t in TimeSlots:
+                if t >= 8:
+                    for p in Professors:
+                        model.Add(
+                            Meeting[v,p,t] == 0
+                        )
+
+        elif Visitors[v].Availability == 'afternoon':
+            for t in TimeSlots:
+                if t < 8:
+                    for p in Professors:
+                        model.Add(
+                            Meeting[v,p,t] == 0
+                        )
 
     ## Each professor can meet with at most one visitor during any given time slot
     for p in Professors:
@@ -328,7 +377,7 @@ def BuildModel(Visitors, Professors, TimeSlots):
         )
 
     ## Each visitor must have at least the minimum number of free periods
-    RequiredFreePeriods = 2
+    RequiredFreePeriods = 8
     for v in Visitors:
         model.Add(
             sum(
@@ -545,7 +594,6 @@ def PrintAllProfessorSchedules(Visitors, Professors, TimeSlots, Meeting):
         # Print out the schedule for this professor
         PrintProfessorSchedule(Visitors, Professors, TimeSlots, Meeting, p)
 
-
 def CalcVisitorHappiness(Visitors, Professors, TimeSlots, Meeting):
 
     # Calculate the happiness of each visitor
@@ -586,6 +634,9 @@ def PrintSummaryStatistics(Visitors, Professors, TimeSlots, Meeting):
     # Import the statistics module
     import statistics as stats
 
+    # Print a header
+    print('-------SUMMARY STATISTICS---------')
+
     # Print the mean happiness
     print('The mean happiness score is: %f' % stats.mean(HappinessScores))
 
@@ -604,8 +655,10 @@ def PrintSummaryStatistics(Visitors, Professors, TimeSlots, Meeting):
         # Check if they are among the least happy
         if Visitors[v].Happiness == min(HappinessScores):
 
-            # Print the visitor's name
-            print('\tCheck %s %s' % (Visitors[v].FirstName, Visitors[v].LastName))
+            if Visitors[v].Happiness < stats.median(HappinessScores):
+
+                # Print the visitor's name
+                print('\tCheck %s %s' % (Visitors[v].FirstName, Visitors[v].LastName))
 
     # Print the standard deviation happiness
     print('The standard deviation in happiness scores is: %f' % stats.stdev(HappinessScores))
@@ -631,8 +684,10 @@ def PrintSummaryStatistics(Visitors, Professors, TimeSlots, Meeting):
         # Check if they are among those with the fewest meetings
         if Visitors[v].NumberOfMeetings == min(MeetingCounts):
 
-            # Print the visitor's name
-            print('\tCheck %s %s' % (Visitors[v].FirstName, Visitors[v].LastName))
+            if Visitors[v].NumberOfMeetings < stats.median(MeetingCounts):
+
+                # Print the visitor's name
+                print('\tCheck %s %s' % (Visitors[v].FirstName, Visitors[v].LastName))
 
     # Print the standard deviation in the number of meetings
     print('The standard deviation in the number of meetings is: %f' % stats.stdev(MeetingCounts))
@@ -642,19 +697,21 @@ def PrintSummaryStatistics(Visitors, Professors, TimeSlots, Meeting):
 
     # Calculate the total number of meetings available
     TotalMeetingsAvailable = sum(MeetingsAvailable)
-    print('Total meetings with faculty available: %d' % TotalMeetingsAvailable)
+    print('Total meetings with professors available: %d' % TotalMeetingsAvailable)
 
     # Calculate the total number of meetings arranged
     TotalMeetingsScheduled = sum(MeetingCounts)
-    print('Total meetings with faculty scheduled: %d' % TotalMeetingsScheduled)
+    print('Total meetings with professors scheduled: %d' % TotalMeetingsScheduled)
 
     # Calculate the fraction of available meetings scheduled
     print('Percentage of available meetings scheduled: %.1f%%' % (float(TotalMeetingsScheduled)/float(TotalMeetingsAvailable)*100))
 
     # Calculate the minimum number of meetings that you could guarantee each student
     import math
-    print('Given the faculty availability, the minimum number of meetings we could guarantee each visitor is: %d' % math.floor(TotalMeetingsAvailable / len(Visitors)))
-        
+    print('Given the professor availability, the minimum number of meetings we could guarantee each visitor is: %d' % math.floor(TotalMeetingsAvailable / len(Visitors)))
+
+    # Mark the end of the summary   
+    print('-------END OF SUMMARY STATISTICS---------')
 
 if __name__ == '__main__':
 
@@ -670,20 +727,72 @@ if __name__ == '__main__':
     # Build the model
     (model, Meeting) = BuildModel(Visitors, Professors, TimeSlots)   
 
+    # Enable output
+    # model.EnableOutput()
+
+    # Set the time limit
+    MaxMinutes = 1
+    model.set_time_limit(round(1000*60*MaxMinutes))
+
     # Solve the model
-    print('Solving the model...')
+    print('Solving the model... (This may take a few minutes)')
     status = model.Solve()
 
     # Check for optimality
     if status == pywraplp.Solver.OPTIMAL:
-        
-        # Print a success message
-        print('Success! The model was solved to optimality.')
+
+        # Display a success message
+        print('Optimal solution found!')
+
+    elif status == pywraplp.Solver.INFEASIBLE:
+
+        # Display an error message
+        print('Error: The model was found to be infeasible.')
+        exit()
+
+    elif status == pywraplp.Solver.NOT_SOLVED:
+
+        # Display an error message
+        print('Error: The model was not solved to completion.  Consider increasing the amount of time allowed to solve the model.')
+        exit()
+
+    elif status == pywraplp.Solver.UNBOUNDED:
+
+        # Display an error message
+        print('Error: The model was found to be unbounded.')
+        exit()
+
+    elif status == pywraplp.Solver.ABNORMAL:
+
+        # Display an error message
+        print('Error: The solver exited with an abnormal status. Consider increasing the amount of time allowed to solve the model.')
+        exit()
 
     else:
 
-        # Display an error message
-        print('Error: I was unable to solve the model.')
+        # Give a status update
+        print('Warning: The model was not solved to completion.  Calculating the optimality gap...')
+
+        # Calculate the optimality gap
+        OptimalityGap = model.Objective().BestBound() - model.Objective().Value()
+        RelativeOptimalityGap = OptimalityGap / max(model.Objective().BestBound(), 0.001)
+
+        # Print the optimality gap
+        print('The optimality gap is %f%%' % (RelativeOptimalityGap * 100))
+
+        if RelativeOptimalityGap > 0.01:
+
+            # Display an error message
+            print('Error: I was unable to solve the model to the desired precision in the time allotted. Consider increasing the amount of time allowed to solve the model.')
+            exit()
+
+        else:
+
+            # Print a partial success message
+            print('The model was solved to within an acceptable optimality gap.')
+
+    # Print a success message
+    print('Success!')
 
     # Calculate visitor happiness
     CalcVisitorHappiness(Visitors, Professors, TimeSlots, Meeting)
