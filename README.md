@@ -4,9 +4,12 @@ Code for scheduling visitor-professor meetings during the MIT ChemE Recruiting W
 ## Prerequisites
 1. `Python`
 2. `pip` (can be installed along with python)
-3. `ortools` (an optimization package that can be installed with `pip install ortools`)
-4. `pandas` (can be installed with `pip install pandas`)
+3. `ortools`
+4. `pandas`
+5. `xlrd`
+6. `openpyxl`
 
+Prerequisites 3-6 can be installed by entering `pip install PACKAGENAME` in the command line (e.g., `pip install ortools`).
 
 ## How to use this code
 1. Download the `GenerateSchedule.py` and `Input Data.xlsx` files into the same directory on your local machine.  In the instructions that follow, we will refer to this as the `Working Directory`.  It doesn't matter which directory you pick, so long as you know where it is.
